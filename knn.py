@@ -2,7 +2,7 @@
 from pyspark import SparkContext
 from pyspark import SparkConf
 from sets import Set
-from utility import read_json, read_txt
+from utility import read_record, read_index
 
 import sys
 import json
@@ -71,9 +71,8 @@ def knn1(sc, v, vectors, k):
     #v is a (reviewerID, [(asin, overall)]), vectors is a RDD of (reviewerID, [(asin, overall)])
     #return a RDD of (reviewerID, [(asin, overall)])
     G = 200
-    if vectors.count() < k:
-        return vectors
-    rlt = vectors.map(lambda a: (a[0], getDistance1(a[1], v[1]), a[1])).zipWithIndex()\
+    rlt = vectors.filter(lambda (k,v): k != v[0])\
+            .map(lambda a: (a[0], getDistance1(a[1], v[1]), a[1])).zipWithIndex()\
             .map(lambda (t, k): (k/G, listhelper(t)))\
             .reduceByKey(lambda a,b: a+b)\
             .map(lambda (k,t): t)\
@@ -89,23 +88,26 @@ def knn1(sc, v, vectors, k):
 
 
 def getSimilarity2(v1, v2):
+    if len(v1) == 0 and len(v2) == 0:
+        return 1.0
+
     h = {}
     for t in v1:
         if not t[0] in h:
             h[t[0]] = [t[1]]
         else:
-            h[t[0]] = h[t[0]].append(t[1])
+            h[t[0]].append(t[1])
 
     for t in v2:
         if not t[0] in h:
             h[t[0]] = [t[1]]
         else:
-            h[t[0]] = h[t[0]].append(t[1])
+            h[t[0]].append(t[1])
 
     sim = 0.0
-    for v in h:
-        if len(v) == 2:
-            d = v[0] - v[1]
+    for k in h:
+        if len(h[k]) == 2:
+            d = h[k][0] - h[k][1]
             if d < 0:
                 d = 0 - d
             sim = sim + 5.0 - d
@@ -116,9 +118,8 @@ def knn2(sc, v, vectors, k):
     #v is a (reviewerID, [(asin, overall)]), vectors is a RDD of (reviewerID, [(asin, overall)])
     #return a RDD of (reviewerID, [(asin, overall)])
     G = 200
-    if vectors.count() < k:
-        return vectors
-    rlt = vectors.map(lambda a: (a[0], getSimilarity2(a[1], v[1]), a[1])).zipWithIndex()\
+    rlt = vectors.filter(lambda (k,v): k != v[0])\
+            .map(lambda a: (a[0], getSimilarity2(a[1], v[1]), a[1])).zipWithIndex()\
             .map(lambda (t, k): (k/G, listhelper(t)))\
             .reduceByKey(lambda a,b: a+b)\
             .map(lambda (k,t): t)\
@@ -147,12 +148,14 @@ def getRecommend(neighbors):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print "Usage: spark-submit knn.py user_id data_file"
+    if len(sys.argv) != 5:
+        print "Usage: spark-submit knn.py user_id record_file userIndex_file itemIndex_file"
         sys.exit(0)
 
-    user_id = sys.argv[1]
-    data_file = sys.argv[2]
+    user_code = sys.argv[1]
+    record_file = sys.argv[2]
+    userIndex_file = sys.argv[3]
+    itemIndex_file = sys.argv[4]
 
     conf = SparkConf()
     conf.setMaster("local[8]")
@@ -165,19 +168,24 @@ if __name__ == '__main__':
     conf.set("spark.shuffle.manager", "sort")
     sc = SparkContext(conf=conf)
 
-    #vectors = read_json(sc, data_file)
-    vectors = read_txt(sc, data_file)
+    vectors = read_record(sc, record_file)
+    itemIndex = read_index(sc, itemIndex_file, True)
+    userIndex = read_index(sc, userIndex_file, False)
+    user_id = userIndex[user_code]
 
     user_vector = getUserVector(user_id, vectors)
 
     K = 100
-
+    
+    vectors = vectors.filter(lambda (k,v): k != user_id)
     neighbors = knn2(sc, user_vector, vectors, K) 
+    #neighbors = knn1(sc, user_vector, vectors, K) 
 
-    r = getRecommend(neighbors) 
+    rlt = getRecommend(neighbors) 
 
     print '*************'
-    print r
+    for r in rlt:
+        print "%s %d" % (itemIndex[r[0]], r[1])
 
 
 
