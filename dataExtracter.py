@@ -58,14 +58,14 @@ if __name__ == '__main__':
     #generate userIndex_file
     f = open(userIndex_file, 'w')
     for k in userIndex.keys():
-        f.write("%s,%d\n" % (k, userIndex[k]))
+        f.write("%s %d\n" % (k, userIndex[k]))
     f.close()
 
 
     #generate itemIndex_file
     f = open(itemIndex_file, 'w')
     for k in itemIndex.keys():
-        f.write("%s,%d\n" % (k, itemIndex[k]))
+        f.write("%s %d\n" % (k, itemIndex[k]))
     f.close()
 
 
@@ -74,7 +74,7 @@ if __name__ == '__main__':
             .collect()
     f = open(output_file,'w')
     for d in data:
-        f.write("%d,%d,%f\n" % (d[0], d[1], d[2]))
+        f.write("%d %d %f\n" % (d[0], d[1], d[2]))
     f.close()
 
 
