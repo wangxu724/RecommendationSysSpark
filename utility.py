@@ -8,27 +8,27 @@ import json
 
 
 
-def read_json(sc, filename):
-    #read the json file return a RDD of (reviewerID, [(asin, overall),...])
-    rawdata = sc.textFile(filename)
-    rawdata = rawdata.map(json.loads).map(lambda a: (a['reviewerID'], Set([(a['asin'], a['overall'])])))
-    vectors = rawdata.reduceByKey(lambda a, b : a.union(b))
-    vectors = vectors.map(lambda (k, v): (k, sorted(list(v))))
-    return vectors 
 
-
-def read_txt(sc, filename):
+def read_record(sc, filename):
     #read the txt file return a RDD of (reviewerID, [(asin, overall),...])
     rawdata = sc.textFile(filename)
     rawdata = rawdata.map(lambda t : tuple(t.split(',')))\
             .filter(lambda t: len(t) == 3)\
-            .map(lambda (a,b,c): (a,Set([(b,float(c))])))
+            .map(lambda (a,b,c): (int(a),Set([(int(b),float(c))])))
     vectors = rawdata.reduceByKey(lambda a, b : a.union(b))
     vectors = vectors.map(lambda (k, v): (k, sorted(list(v))))
     return vectors 
 
 
-
+def read_index(sc, filename, reverse):
+    #read the indexfile return a hash of {index->name}
+    index = sc.textFile(filename)\
+            .map(lambda t: tuple(t.split(',')))
+    if reverse:
+        index = index.map(lambda (a,b): (int(b),a))
+    else:
+        index = index.map(lambda (a,b): (a,int(b)))
+    return index.collectAsMap()
 
 
 
