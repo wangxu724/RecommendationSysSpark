@@ -1,0 +1,6 @@
+To do k nearest neighbor of a given user U in the spark fasion, we:
+1. for each user vector V, compute the similarity between V and the U's vector, and form (similarity, V) pairs
+1. zip each pairs, generated last step, with a unique index
+2. group pairs by using the index/k as the group id, where k is the size of each group
+3. do the reduce, where the inputs of reducer are 2 sorted arrays of pairs(sort by the similarity in the descending order), and the reducer do a merge sort and keep only the top k pairs.
+4. finished
