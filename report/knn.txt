@@ -4,3 +4,9 @@ To do k nearest neighbor of a given user U in the spark fasion, we:
 2. group pairs by using the index/k as the group id, where k is the size of each group
 3. do the reduce, where the inputs of reducer are 2 sorted arrays of pairs(sort by the similarity in the descending order), and the reducer do a merge sort and keep only the top k pairs.
 4. finished
+
+
+to Run:
+spark-submit system.py userID_file record_file userIndex_file itemIndex_file
+
+

@@ -1,11 +1,3 @@
-#Recommend using k nearest neighbors(using product as user's feature)
-from pyspark import SparkContext
-from pyspark import SparkConf
-from sets import Set
-from utility import read_record, read_index
-
-import sys
-import json
 
 
 def getUserVector(user_id, vectors):
@@ -129,63 +121,10 @@ def knn2(sc, v, vectors, k):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 def getRecommend(neighbors):
     item = neighbors.flatMap(lambda a: [ (i[0], 1) for i in a[2]])
     rlt = item.reduceByKey(lambda a, b: a+b).sortBy(lambda a: a[1], ascending=False).take(5)
     return rlt
-
-
-if __name__ == '__main__':
-    if len(sys.argv) != 5:
-        print "Usage: spark-submit knn.py user_id record_file userIndex_file itemIndex_file"
-        sys.exit(0)
-
-    user_code = sys.argv[1]
-    record_file = sys.argv[2]
-    userIndex_file = sys.argv[3]
-    itemIndex_file = sys.argv[4]
-
-    conf = SparkConf()
-    conf.setMaster("local[8]")
-    conf.setAppName("matmult")
-    conf.set("spark.executor.memory", "16g")
-    conf.set("spark.driver.memory", "16g")
-    conf.set("spark.python.worker.memory", "16g")
-    conf.set("spark.storage.memoryFraction", "0.8")
-    conf.set("spark.shuffle.memoryFraction", "0.8")
-    conf.set("spark.shuffle.manager", "sort")
-    sc = SparkContext(conf=conf)
-
-    vectors = read_record(sc, record_file)
-    itemIndex = read_index(sc, itemIndex_file, True)
-    userIndex = read_index(sc, userIndex_file, False)
-    user_id = userIndex[user_code]
-
-    user_vector = getUserVector(user_id, vectors)
-
-    K = 100
-    
-    vectors = vectors.filter(lambda (k,v): k != user_id)
-    neighbors = knn2(sc, user_vector, vectors, K) 
-    #neighbors = knn1(sc, user_vector, vectors, K) 
-
-    rlt = getRecommend(neighbors) 
-
-    print '*************'
-    for r in rlt:
-        print "%s %d" % (itemIndex[r[0]], r[1])
 
 
 

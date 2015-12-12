@@ -23,7 +23,7 @@ def read_record(sc, filename):
 def read_index(sc, filename, reverse):
     #read the indexfile return a hash of {index->name}
     index = sc.textFile(filename)\
-            .map(lambda t: tuple(t.split(' ')))
+            .map(lambda t: tuple(t.split(' '))).filter(lambda t: len(t) == 2)
     if reverse:
         index = index.map(lambda (a,b): (int(b),a))
     else:
@@ -32,7 +32,10 @@ def read_index(sc, filename, reverse):
 
 
 
-
+def read_userID_file(sc, filename):
+    #read the userID_file and return a list of userID
+    userID = sc.textFile(filename).collect()
+    return userID
 
 
 
